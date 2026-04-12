@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="SmartDelivery.API/SmartDelivery.API.csproj" />
+  <Project Path="SmartDelivery.Application/SmartDelivery.Application.csproj" />
+  <Project Path="SmartDelivery.Domain/SmartDelivery.Domain.csproj" />
+  <Project Path="SmartDelivery.Infrastructure/SmartDelivery.Infrastructure.csproj" />
+</Solution>
