@@ -13,9 +13,6 @@
   <ItemGroup>
     <Folder Include="Features\Couriers\Commands\" />
     <Folder Include="Features\Couriers\Queries\" />
-    <Folder Include="Features\Orders\Commands\" />
-    <Folder Include="Features\Orders\Queries\" />
-    <Folder Include="DTOs\" />
     <Folder Include="Interfaces\" />
   </ItemGroup>
 
