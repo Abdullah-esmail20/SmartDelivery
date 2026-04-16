@@ -15,13 +15,16 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     )
 );
 
+
+
+
 // ── 2. Repositories ────────────────────────────────
 // نسجل كل Repository حتى يعرف الـ API يستخدمه
 // كلما طلب كود IOrderRepository يعطيه OrderRepository
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<ICourierRepository, CourierRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
-
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 // ── 3. MediatR (CQRS) ──────────────────────────────
 // نقول لـ MediatR يبحث عن كل الـ Handlers في Application
 builder.Services.AddMediatR(cfg =>

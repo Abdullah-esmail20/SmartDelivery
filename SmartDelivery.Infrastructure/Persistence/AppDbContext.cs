@@ -20,6 +20,7 @@ namespace SmartDelivery.Infrastructure.Persistence
         public DbSet<Courier> Couriers => Set<Courier>();
         public DbSet<Customer> Customers => Set<Customer>();
 
+        public DbSet<AppUser> Users => Set<AppUser>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // نقول لـ EF Core يطبق إعدادات الجداول من مجلد Configurations
