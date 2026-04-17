@@ -1,6 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using SmartDelivery.Application.Events;
 using SmartDelivery.Application.Features.Orders.Commands;
+using SmartDelivery.Application.Services;
 using SmartDelivery.Domain.Interfaces;
+using SmartDelivery.Infrastructure.Adapters;
 using SmartDelivery.Infrastructure.Persistence;
 using SmartDelivery.Infrastructure.Persistence.Repositories;
 using System;
@@ -25,6 +28,25 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<ICourierRepository, CourierRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+
+
+
+// ✅ شرط 5: Facade
+builder.Services.AddScoped<DeliveryFacade>();
+
+// ✅ شرط 5: Adapter
+builder.Services.AddScoped<ILocationAdapter, LocationAdapter>();
+
+// ✅ شرط 6: Observer
+builder.Services.AddScoped<IEventHandler<OrderStatusChangedEvent>,
+                            OrderStatusNotificationHandler>();
+builder.Services.AddScoped<EventDispatcher>();
+
+
+
+
+
 // ── 3. MediatR (CQRS) ──────────────────────────────
 // نقول لـ MediatR يبحث عن كل الـ Handlers في Application
 builder.Services.AddMediatR(cfg =>
