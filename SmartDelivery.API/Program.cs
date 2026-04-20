@@ -4,6 +4,7 @@ using SmartDelivery.Application.Features.Orders.Commands;
 using SmartDelivery.Application.Services;
 using SmartDelivery.Domain.Interfaces;
 using SmartDelivery.Infrastructure.Adapters;
+using SmartDelivery.Infrastructure.Messaging;
 using SmartDelivery.Infrastructure.Persistence;
 using SmartDelivery.Infrastructure.Persistence.Repositories;
 using System;
@@ -43,6 +44,8 @@ builder.Services.AddScoped<IEventHandler<OrderStatusChangedEvent>,
                             OrderStatusNotificationHandler>();
 builder.Services.AddScoped<EventDispatcher>();
 
+// ✅ شرط 8: ESB — تسجيل RabbitMQ + MassTransit
+builder.Services.AddMessaging();
 
 
 

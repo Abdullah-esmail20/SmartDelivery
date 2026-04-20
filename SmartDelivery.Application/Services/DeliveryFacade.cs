@@ -1,5 +1,8 @@
-﻿using SmartDelivery.Application.DTOs;
+﻿using MassTransit;
+using SmartDelivery.Application.DTOs;
 using SmartDelivery.Application.Factories;
+// ✅ الآن صح — Application يأخذ Events من نفسه
+using SmartDelivery.Application.Messaging;
 using SmartDelivery.Domain.Enums;
 using SmartDelivery.Domain.Interfaces;
 using System;
@@ -8,31 +11,27 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SmartDelivery.Application.Services
-{
+namespace SmartDelivery.Application.Services;
 
-
-
-
-// ✅ شرط 5 (أول واحد): Structural Design Pattern — Facade
-// Facade يوفر واجهة بسيطة للعمليات المعقدة
-// بدل ما الـ Controller يتعامل مع Repository و Factory و منطق معقد
-// يتعامل فقط مع DeliveryFacade بدالة واحدة
+// ✅ شرط 5: Facade — الآن مع ESB
 public class DeliveryFacade
 {
     private readonly IOrderRepository _orderRepository;
     private readonly ICourierRepository _courierRepository;
 
+    // ✅ شرط 8: IPublishEndpoint يرسل Events لـ RabbitMQ
+    private readonly IPublishEndpoint _publishEndpoint;
+
     public DeliveryFacade(
         IOrderRepository orderRepository,
-        ICourierRepository courierRepository)
+        ICourierRepository courierRepository,
+        IPublishEndpoint publishEndpoint)
     {
         _orderRepository = orderRepository;
         _courierRepository = courierRepository;
+        _publishEndpoint = publishEndpoint;
     }
 
-    // ✅ OOP: Encapsulation — نخفي التعقيد داخل هذه الدالة
-    // الـ Controller يستدعي دالة واحدة فقط بدل 5 خطوات
     public async Task<OrderDto> PlaceOrderAsync(
         string description,
         string pickupAddress,
@@ -42,25 +41,36 @@ public class DeliveryFacade
     {
         // الخطوة 1: إنشاء الطلب عبر Factory
         var order = isUrgent
-            ? OrderFactory.CreateUrgentOrder(description, pickupAddress, deliveryAddress, customerId)
-            : OrderFactory.CreateStandardOrder(description, pickupAddress, deliveryAddress, customerId);
+            ? OrderFactory.CreateUrgentOrder(
+                description, pickupAddress, deliveryAddress, customerId)
+            : OrderFactory.CreateStandardOrder(
+                description, pickupAddress, deliveryAddress, customerId);
 
         // الخطوة 2: حفظ الطلب
         await _orderRepository.AddAsync(order);
 
-        // الخطوة 3: ابحث عن كورير متاح وعيّنه تلقائياً
+        // الخطوة 3: تعيين كورير متاح
         var availableCouriers = await _courierRepository.GetAvailableCouriersAsync();
         var courier = availableCouriers.FirstOrDefault();
 
         if (courier is not null)
         {
             order.AssignCourier(courier.Id);
-            courier.SetAvailability(false); // الكورير أصبح مشغولاً
+            courier.SetAvailability(false);
             await _orderRepository.UpdateAsync(order);
             await _courierRepository.UpdateAsync(courier);
         }
 
-        // الخطوة 4: إرجاع النتيجة
+        // ✅ شرط 8: نشر Event على RabbitMQ — كل المشتركين يستقبلونه
+        await _publishEndpoint.Publish(new OrderCreatedEvent
+        {
+            OrderId = order.Id,
+            CustomerId = order.CustomerId,
+            Description = order.Description,
+            PickupAddress = order.PickupAddress,
+            DeliveryAddress = order.DeliveryAddress
+        });
+
         return new OrderDto
         {
             Id = order.Id,
@@ -74,20 +84,30 @@ public class DeliveryFacade
         };
     }
 
-    // تحديث حالة الطلب بشكل مبسط
-    public async Task<bool> UpdateOrderStatusAsync(Guid orderId, OrderStatus newStatus)
+    public async Task<bool> UpdateOrderStatusAsync(
+        Guid orderId, OrderStatus newStatus)
     {
         var order = await _orderRepository.GetByIdAsync(orderId);
-
         if (order is null) return false;
 
+        var oldStatus = order.Status.ToString();
         order.UpdateStatus(newStatus);
         await _orderRepository.UpdateAsync(order);
 
-        // إذا تم التسليم، أعد الكورير للخدمة
+        // ✅ شرط 8: نشر Event عند تغيير الحالة
+        await _publishEndpoint.Publish(new OrderStatusUpdatedEvent
+        {
+            OrderId = order.Id,
+            CustomerId = order.CustomerId,
+            OldStatus = oldStatus,
+            NewStatus = newStatus.ToString()
+        });
+
         if (newStatus == OrderStatus.Delivered && order.CourierId.HasValue)
         {
-            var courier = await _courierRepository.GetByIdAsync(order.CourierId.Value);
+            var courier = await _courierRepository.GetByIdAsync(
+                order.CourierId.Value);
+
             if (courier is not null)
             {
                 courier.SetAvailability(true);
@@ -96,6 +116,5 @@ public class DeliveryFacade
         }
 
         return true;
-    }
     }
 }
