@@ -8,9 +8,21 @@ using SmartDelivery.Infrastructure.Messaging;
 using SmartDelivery.Infrastructure.Persistence;
 using SmartDelivery.Infrastructure.Persistence.Repositories;
 using System;
+// في أعلى الملف أضف:
+using SmartDelivery.API.Hubs;
+using SmartDelivery.API.Services;
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 
+
+
+// ✅ شرط 10: تسجيل SignalR
+builder.Services.AddSignalR();
+
+// ✅ ربط INotificationService بالتنفيذ الفعلي
+builder.Services.AddScoped<INotificationService, NotificationService>();
 // ── 1. قاعدة البيانات ──────────────────────────────
 // نربط AppDbContext بـ SQL Server باستخدام الـ Connection String
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -83,5 +95,12 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+
+
+
+// ✅ شرط 10: تحديد مسار الـ Hub
+// العملاء يتصلون عبر: wss://localhost:xxxx/hubs/delivery
+app.MapHub<DeliveryHub>("/hubs/delivery");
+
 
 app.Run();
