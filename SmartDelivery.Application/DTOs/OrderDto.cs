@@ -16,5 +16,10 @@ namespace SmartDelivery.Application.DTOs
         public DateTime CreatedAt { get; set; }
         public Guid CustomerId { get; set; }
         public Guid? CourierId { get; set; }
+
+
+        // ✅ اسم الكورير للعرض
+        public string? CourierName { get; set; }
+
     }
 }

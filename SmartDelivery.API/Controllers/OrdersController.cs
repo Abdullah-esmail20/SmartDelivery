@@ -40,4 +40,24 @@ public class OrdersController : ControllerBase
         // 201 Created مع بيانات الطلب الجديد
         return CreatedAtAction(nameof(GetAll), new { id = result.Id }, result);
     }
+
+
+    // GET: api/orders/{orderId}
+    // جلب طلب واحد بالـ Id
+    [HttpGet("{orderId}")]
+    public async Task<IActionResult> GetById(Guid orderId)
+    {
+        var result = await _mediator.Send(new GetOrderByIdQuery(orderId));
+        if (result is null) return NotFound();
+        return Ok(result);
+    }
+
+    // GET: api/orders/customer/{customerId}
+    [HttpGet("customer/{customerId}")]
+    public async Task<IActionResult> GetCustomerOrders(Guid customerId)
+    {
+        var result = await _mediator.Send(
+            new GetOrdersByCustomerQuery(customerId));
+        return Ok(result);
+    }
 }

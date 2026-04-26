@@ -32,6 +32,24 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 );
 
 
+// أضف هذا قبل builder.Build()
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReact", policy =>
+    {
+        // نسمح لـ React (port 3001) بالاتصال بالـ API
+        policy.WithOrigins(
+                "http://localhost:3000",
+                "http://localhost:3001",
+                "http://localhost:3002",
+                "http://localhost:3003"
+
+            )
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials(); // مهم لـ SignalR
+    });
+});
 
 
 // ── 2. Repositories ────────────────────────────────
@@ -93,6 +111,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+// فعّل CORS قبل أي Middleware آخر
+app.UseCors("AllowReact");
 app.UseAuthorization();
 app.MapControllers();
 

@@ -14,5 +14,7 @@ namespace SmartDelivery.Application.DTOs
         public string Email { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;
+        public Guid? CustomerId { get; set; }
+        public Guid? CourierId { get; set; }
     }
 }

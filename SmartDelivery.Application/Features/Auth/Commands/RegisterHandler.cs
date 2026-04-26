@@ -69,7 +69,9 @@ namespace SmartDelivery.Application.Features.Auth.Commands
                 UserId = user.Id,
                 Email = user.Email,
                 Role = user.Role,
-                Message = "تم التسجيل بنجاح"
+                Message = "تم التسجيل بنجاح",
+                 CustomerId = customerId,
+                CourierId = courierId
             };
         }
 
