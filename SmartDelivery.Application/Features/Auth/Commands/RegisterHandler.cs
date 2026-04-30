@@ -59,18 +59,23 @@ namespace SmartDelivery.Application.Features.Auth.Commands
             }
 
             // 4. إنشاء حساب المستخدم
-            var user = AppUser.Create(request.Email, passwordHash,
-                                      request.Role, customerId, courierId);
-
+            //var user = AppUser.Create(request.Email, passwordHash,
+                                     // request.Role, customerId, courierId);
+            var user = AppUser.Create(request.FullName,  request.Email,
+    passwordHash,
+    request.Role,
+    customerId,
+    courierId);
             await _userRepository.AddAsync(user);
 
             return new AuthDto
             {
                 UserId = user.Id,
+                FullName = user.FullName,  // ✅ صح
                 Email = user.Email,
                 Role = user.Role,
                 Message = "تم التسجيل بنجاح",
-                 CustomerId = customerId,
+                CustomerId = customerId,
                 CourierId = courierId
             };
         }

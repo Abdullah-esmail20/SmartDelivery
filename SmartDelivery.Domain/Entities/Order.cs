@@ -52,4 +52,14 @@ public class Order
     {
         Status = newStatus;
     }
+
+    // ✅ تعديل تفاصيل الطلب — فقط إذا كان Pending
+    public void UpdateDetails(string description,
+                               string pickupAddress,
+                               string deliveryAddress)
+    {
+        Description = description;
+        PickupAddress = pickupAddress;
+        DeliveryAddress = deliveryAddress;
+    }
 }

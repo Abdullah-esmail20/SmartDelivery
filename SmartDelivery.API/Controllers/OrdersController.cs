@@ -60,4 +60,21 @@ public class OrdersController : ControllerBase
             new GetOrdersByCustomerQuery(customerId));
         return Ok(result);
     }
+
+    // PUT: api/orders/{orderId}
+    // تعديل طلب — فقط إذا كان Pending
+    [HttpPut("{orderId}")]
+    public async Task<IActionResult> Update(
+        Guid orderId,
+        [FromBody] UpdateOrderCommand command)
+    {
+        // نضيف الـ Id من الـ URL
+        var updatedCommand = command with { OrderId = orderId };
+        var result = await _mediator.Send(updatedCommand);
+
+        if (result is null)
+            return BadRequest("لا يمكن تعديل الطلب — يجب أن يكون Pending");
+
+        return Ok(result);
+    }
 }
