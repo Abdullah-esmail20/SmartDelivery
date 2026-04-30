@@ -20,6 +20,8 @@ namespace SmartDelivery.Infrastructure.Persistence
         public DbSet<Courier> Couriers => Set<Courier>();
         public DbSet<Customer> Customers => Set<Customer>();
 
+        public DbSet<Ticket> Tickets => Set<Ticket>();
+        public DbSet<TicketReply> TicketReplies => Set<TicketReply>();
         public DbSet<AppUser> Users => Set<AppUser>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

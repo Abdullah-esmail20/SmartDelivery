@@ -103,7 +103,7 @@ builder.Services.AddMediatR(cfg =>
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
+builder.Services.AddScoped<ITicketRepository, TicketRepository>();
 var app = builder.Build();
 
 // ── 5. Auto Migration ──────────────────────────────
