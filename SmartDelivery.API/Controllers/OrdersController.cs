@@ -5,13 +5,12 @@ using SmartDelivery.Application.Features.Orders.Queries;
 
 namespace SmartDelivery.API.Controllers;
 
-// [ApiController] يفعّل ميزات تلقائية مثل التحقق من البيانات
+
 [ApiController]
-// الـ URL سيكون: https://localhost:xxxx/api/orders
+
 [Route("api/[controller]")]
 public class OrdersController : ControllerBase
 {
-    // MediatR هو الوسيط بين الـ Controller والـ Handlers
     private readonly IMediator _mediator;
 
     public OrdersController(IMediator mediator)
@@ -20,30 +19,27 @@ public class OrdersController : ControllerBase
     }
 
     // GET: api/orders
-    // جلب كل الطلبات
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        // نرسل Query لـ MediatR ويوصلها للـ Handler المناسب
         var result = await _mediator.Send(new GetAllOrdersQuery());
-        return Ok(result); // 200 OK مع البيانات
+        return Ok(result); 
     }
 
     // POST: api/orders
-    // إنشاء طلب جديد
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateOrderCommand command)
     {
-        // [FromBody] يعني البيانات تجي من الـ Request Body كـ JSON
+        // [FromBody]  Request Body ـ JSON
         var result = await _mediator.Send(command);
 
-        // 201 Created مع بيانات الطلب الجديد
+        // 201 Created 
         return CreatedAtAction(nameof(GetAll), new { id = result.Id }, result);
     }
 
 
     // GET: api/orders/{orderId}
-    // جلب طلب واحد بالـ Id
+  
     [HttpGet("{orderId}")]
     public async Task<IActionResult> GetById(Guid orderId)
     {
@@ -62,14 +58,11 @@ public class OrdersController : ControllerBase
     }
 
     // PUT: api/orders/{orderId}
-    // تعديل طلب — فقط إذا كان Pending
     [HttpPut("{orderId}")]
     public async Task<IActionResult> Update(
         Guid orderId,
         [FromBody] UpdateOrderCommand command)
-    {
-        // نضيف الـ Id من الـ URL
-        var updatedCommand = command with { OrderId = orderId };
+    {        var updatedCommand = command with { OrderId = orderId };
         var result = await _mediator.Send(updatedCommand);
 
         if (result is null)

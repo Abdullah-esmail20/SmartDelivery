@@ -1,7 +1,6 @@
 ﻿using MassTransit;
 using SmartDelivery.Application.DTOs;
 using SmartDelivery.Application.Factories;
-// ✅ الآن صح — Application يأخذ Events من نفسه
 using SmartDelivery.Application.Messaging;
 using SmartDelivery.Domain.Enums;
 using SmartDelivery.Domain.Interfaces;
@@ -13,13 +12,11 @@ using System.Threading.Tasks;
 
 namespace SmartDelivery.Application.Services;
 
-// ✅ شرط 5: Facade — الآن مع ESB
+// ✅ شرط 5: Facade — يبسّط عملية إنشاء الطلب وتعيين الكورير
 public class DeliveryFacade
 {
     private readonly IOrderRepository _orderRepository;
     private readonly ICourierRepository _courierRepository;
-
-    // ✅ شرط 8: IPublishEndpoint يرسل Events لـ RabbitMQ
     private readonly IPublishEndpoint _publishEndpoint;
 
     public DeliveryFacade(
@@ -32,6 +29,9 @@ public class DeliveryFacade
         _publishEndpoint = publishEndpoint;
     }
 
+    // ════════════════════════════════════════
+    // إنشاء طلب جديد + تعيين كورير تلقائياً
+    // ════════════════════════════════════════
     public async Task<OrderDto> PlaceOrderAsync(
         string description,
         string pickupAddress,
@@ -49,19 +49,27 @@ public class DeliveryFacade
         // الخطوة 2: حفظ الطلب
         await _orderRepository.AddAsync(order);
 
-        // الخطوة 3: تعيين كورير متاح
+        // الخطوة 3: تعيين كورير متاح (إن وُجد)
         var availableCouriers = await _courierRepository.GetAvailableCouriersAsync();
         var courier = availableCouriers.FirstOrDefault();
 
+        string? infoMessage = null;  // ✅ رسالة معلوماتية
+
         if (courier is not null)
         {
+            // ✅ يوجد كورير متاح — نعيّنه
             order.AssignCourier(courier.Id);
             courier.SetAvailability(false);
             await _orderRepository.UpdateAsync(order);
             await _courierRepository.UpdateAsync(courier);
         }
+        else
+        {
+            // ✅ لا يوجد كورير متاح → الطلب يبقى Pending
+            infoMessage = "Şu anda müsait kurye yok. Siparişiniz sıraya alındı, kurye müsait olunca otomatik atanacak.";
+        }
 
-        // ✅ شرط 8: نشر Event على RabbitMQ — كل المشتركين يستقبلونه
+        // ✅ شرط 8: نشر Event على RabbitMQ
         await _publishEndpoint.Publish(new OrderCreatedEvent
         {
             OrderId = order.Id,
@@ -80,10 +88,14 @@ public class DeliveryFacade
             Status = order.Status.ToString(),
             CreatedAt = order.CreatedAt,
             CustomerId = order.CustomerId,
-            CourierId = order.CourierId
+            CourierId = order.CourierId,
+            InfoMessage = infoMessage  // ✅ نرجع الرسالة
         };
     }
 
+    // ════════════════════════════════════════
+    // تحديث حالة الطلب + إدارة طابور الانتظار
+    // ════════════════════════════════════════
     public async Task<bool> UpdateOrderStatusAsync(
         Guid orderId, OrderStatus newStatus)
     {
@@ -103,6 +115,7 @@ public class DeliveryFacade
             NewStatus = newStatus.ToString()
         });
 
+        // ✅ عند التسليم — حرّر الكورير وأعطه طلباً منتظراً
         if (newStatus == OrderStatus.Delivered && order.CourierId.HasValue)
         {
             var courier = await _courierRepository.GetByIdAsync(
@@ -110,8 +123,32 @@ public class DeliveryFacade
 
             if (courier is not null)
             {
+                // الكورير صار متاحاً
                 courier.SetAvailability(true);
                 await _courierRepository.UpdateAsync(courier);
+
+                // ✅ ابحث عن طلب منتظر (Pending) وعيّنه لهذا الكورير
+                var pendingOrders = await _orderRepository
+                    .GetByStatusAsync(OrderStatus.Pending);
+                var waitingOrder = pendingOrders.FirstOrDefault();
+
+                if (waitingOrder is not null)
+                {
+                    waitingOrder.AssignCourier(courier.Id);
+                    courier.SetAvailability(false);  // يصير مشغولاً مجدداً
+
+                    await _orderRepository.UpdateAsync(waitingOrder);
+                    await _courierRepository.UpdateAsync(courier);
+
+                    // ننشر حدث التعيين الجديد
+                    await _publishEndpoint.Publish(new OrderStatusUpdatedEvent
+                    {
+                        OrderId = waitingOrder.Id,
+                        CustomerId = waitingOrder.CustomerId,
+                        OldStatus = "Pending",
+                        NewStatus = "Assigned"
+                    });
+                }
             }
         }
 

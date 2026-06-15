@@ -13,16 +13,6 @@ using SmartDelivery.Infrastructure.Persistence;
 using SmartDelivery.Infrastructure.Persistence.Repositories;
 using System;
 
-
-
-
-
-
-
-
-
-
-
 var builder = WebApplication.CreateBuilder(args);
 
 
@@ -30,7 +20,6 @@ var builder = WebApplication.CreateBuilder(args);
 // ✅ شرط 10: تسجيل SignalR
 builder.Services.AddSignalR();
 
-// ✅ ربط INotificationService بالتنفيذ الفعلي
 builder.Services.AddScoped<INotificationService, NotificationService>();
 // ── 1. قاعدة البيانات ──────────────────────────────
 // نربط AppDbContext بـ SQL Server باستخدام الـ Connection String
@@ -38,9 +27,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")
     )
+    .ConfigureWarnings(w =>
+        w.Ignore(Microsoft.EntityFrameworkCore
+            .Diagnostics.RelationalEventId.PendingModelChangesWarning))
 );
-
-
+// ── 1. قاعدة البيانات ──────────────────────────────
+// نربط AppDbContext بـ SQL Server باستخدام الـ Connection String
 
 // أضف هذا قبل builder.Build()
 builder.Services.AddCors(options =>
@@ -58,7 +50,7 @@ builder.Services.AddCors(options =>
             )
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials(); // مهم لـ SignalR
+              .AllowCredentials();  
     });
 });
 
@@ -107,11 +99,17 @@ builder.Services.AddScoped<ITicketRepository, TicketRepository>();
 var app = builder.Build();
 
 // ── 5. Auto Migration ──────────────────────────────
-// ينشئ قاعدة البيانات تلقائياً عند تشغيل البرنامج
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    try
+    {
+        db.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Migration warning: {ex.Message}");
+    }
 }
 
 // ── 6. Middleware ──────────────────────────────────

@@ -20,6 +20,7 @@ namespace SmartDelivery.Application.DTOs
 
         // ✅ اسم الكورير للعرض
         public string? CourierName { get; set; }
+        public string? InfoMessage { get; set; }
 
     }
 }

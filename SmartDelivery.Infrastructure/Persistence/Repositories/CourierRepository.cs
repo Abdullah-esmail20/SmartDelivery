@@ -20,7 +20,7 @@ public class CourierRepository : BaseRepository<Courier>, ICourierRepository
     {
         return await _context.Couriers
             .Where(c => c.IsAvailable == true)
-            .AsNoTracking()
+        
             .ToListAsync();
     }
 }

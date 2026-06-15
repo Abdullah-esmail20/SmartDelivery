@@ -1,8 +1,10 @@
 ﻿using MediatR;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using SmartDelivery.Application.Features.Orders.Commands;
 using SmartDelivery.Application.Features.Orders.Queries;
 using SmartDelivery.Domain.Enums;
+using SmartDelivery.Domain.Interfaces;  
 
 namespace SmartDelivery.API.Controllers;
 
@@ -11,14 +13,17 @@ namespace SmartDelivery.API.Controllers;
 public class CouriersController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly ICourierRepository _courierRepository;  
 
-    public CouriersController(IMediator mediator)
+    public CouriersController(
+        IMediator mediator,
+        ICourierRepository courierRepository) 
     {
         _mediator = mediator;
+        _courierRepository = courierRepository;  // ✅ أضف هذا
     }
 
     // GET: api/couriers/{courierId}/orders
-    // جلب كل طلبات كورير معين
     [HttpGet("{courierId}/orders")]
     public async Task<IActionResult> GetCourierOrders(Guid courierId)
     {
@@ -28,16 +33,28 @@ public class CouriersController : ControllerBase
     }
 
     // PUT: api/couriers/orders/{orderId}/status
-    // تحديث حالة الطلب من قبل الكورير
     [HttpPut("orders/{orderId}/status")]
     public async Task<IActionResult> UpdateOrderStatus(
         Guid orderId, [FromBody] UpdateOrderStatusRequest request)
     {
         var result = await _mediator.Send(
             new UpdateOrderStatusCommand(orderId, request.NewStatus));
-
         if (!result) return NotFound("الطلب غير موجود");
         return Ok("تم تحديث الحالة بنجاح");
+    }
+
+    // GET: api/couriers
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var couriers = await _courierRepository.GetAllAsync();
+        return Ok(couriers.Select(c => new
+        {
+            c.Id,
+            c.FullName,
+            c.Phone,
+            c.IsAvailable
+        }));
     }
 }
 
